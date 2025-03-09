@@ -9,6 +9,47 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+type SpeechRecognitionErrorEvent = Event & {
+  error: string;
+};
+
+type SpeechRecognitionResult = {
+  isFinal: boolean;
+  [index: number]: {
+    transcript: string;
+  };
+};
+
+type SpeechRecognitionEvent = Event & {
+  resultIndex: number;
+  results: {
+    [index: number]: SpeechRecognitionResult;
+    length: number;
+  };
+};
+
+type SpeechRecognition = EventTarget & {
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onerror:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void)
+    | null;
+  onresult:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void)
+    | null;
+};
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 type TSpeechToTextProps = {
   className?: string;
 };
@@ -34,7 +75,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
     (state) => state.updateFinalTranscript
   );
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef("");
 
   useEffect(() => {
@@ -65,7 +106,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
       setInterimTranscript("");
     };
 
-    const handleError = (event: any) => {
+    const handleError = (event: SpeechRecognitionErrorEvent) => {
       console.error("Speech recognition error", event.error);
       setListening(false);
       setLoading(false);
@@ -73,7 +114,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
       toast.error(`Speech recognition error: ${event.error}`);
     };
 
-    const handleResult = (event: any) => {
+    const handleResult = (event: SpeechRecognitionEvent) => {
       let currentInterimTranscript = "";
       let newFinalTranscript = "";
 
@@ -130,7 +171,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
     }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      recognitionRef.current?.stop();
     } else {
       try {
         setLoading(true);
@@ -140,7 +181,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
         if (!transcript) {
           finalTranscriptRef.current = "";
         }
-        recognitionRef.current.start();
+        recognitionRef.current?.start();
       } catch (error) {
         console.error("Error accessing microphone", error);
         setLoading(false);
