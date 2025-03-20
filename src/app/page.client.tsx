@@ -3,8 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useSpeechStore } from "@/store/use-speech-store";
-import { Loader2, Mic, MicOff } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Loader2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,7 @@ type TSpeechToTextProps = {
 };
 
 export default function SpeechToText({ className }: TSpeechToTextProps) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
   // Use selective state updates to prevent unnecessary re-renders
   const transcript = useSpeechStore((state) => state.transcript);
   const interimTranscript = useSpeechStore((state) => state.interimTranscript);
@@ -190,6 +191,45 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
     }
   };
 
+  const speakText = () => {
+    if (!transcript && !interimTranscript) {
+      toast.error("Please enter some text to speak");
+      return;
+    }
+
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+
+    if (isSpeaking) {
+      setIsSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      transcript + (interimTranscript ? ` ${interimTranscript}` : "")
+    );
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (event) => {
+      console.error("Speech synthesis error", event);
+      setIsSpeaking(false);
+      toast.error("Error speaking text");
+    };
+
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Add cleanup for speech synthesis
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
   return (
     <div className={cn("w-full max-w-md mx-auto space-y-4", className)}>
       <div className="relative">
@@ -202,61 +242,78 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
             finalTranscriptRef.current = e.target.value;
           }}
           placeholder="Click the microphone button and start speaking..."
-          className="min-h-[150px] pr-12 resize-y"
+          className="min-h-[150px] pr-24 resize-y"
         />
         <AnimatePresence mode="wait">
-          <motion.div
-            className="absolute bottom-3 right-3"
-            initial={{ scale: 1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              onClick={toggleListening}
-              disabled={!isSupported || isLoading}
-              size="icon"
-              variant={isListening ? "destructive" : "default"}
-              className="relative w-10 h-10 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-              aria-label={isListening ? "Stop listening" : "Start listening"}
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  {isListening && (
-                    <motion.div
-                      className="absolute inset-0"
-                      animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.6, 0.2, 0.6],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      style={{
-                        backgroundColor: "var(--destructive)",
-                        borderRadius: "inherit",
-                      }}
-                    />
-                  )}
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="relative z-10 flex items-center justify-center w-full h-full"
-                  >
-                    {isListening ? (
-                      <MicOff className="h-5 w-5 text-white" />
-                    ) : (
-                      <Mic className="h-5 w-5" />
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            <motion.div initial={{ scale: 1 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={speakText}
+                size="icon"
+                variant={isSpeaking ? "destructive" : "secondary"}
+                className="relative w-10 h-10 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                aria-label={isSpeaking ? "Stop speaking" : "Speak text"}
+              >
+                {isSpeaking ? (
+                  <VolumeX className="h-5 w-5" />
+                ) : (
+                  <Volume2 className="h-5 w-5" />
+                )}
+              </Button>
+            </motion.div>
+            <motion.div initial={{ scale: 1 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={toggleListening}
+                disabled={!isSupported || isLoading}
+                size="icon"
+                variant={isListening ? "destructive" : "default"}
+                className="relative w-10 h-10 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                aria-label={isListening ? "Stop listening" : "Start listening"}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    {isListening && (
+                      <motion.div
+                        className="absolute inset-0"
+                        animate={{
+                          scale: [1, 1.2, 1],
+                          opacity: [0.6, 0.2, 0.6],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        }}
+                        style={{
+                          backgroundColor: "var(--destructive)",
+                          borderRadius: "inherit",
+                        }}
+                      />
                     )}
-                  </motion.div>
-                </>
-              )}
-            </Button>
-          </motion.div>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      }}
+                      className="relative z-10 flex items-center justify-center w-full h-full"
+                    >
+                      {isListening ? (
+                        <MicOff className="h-5 w-5" />
+                      ) : (
+                        <Mic className="h-5 w-5" />
+                      )}
+                    </motion.div>
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </div>
         </AnimatePresence>
       </div>
 
