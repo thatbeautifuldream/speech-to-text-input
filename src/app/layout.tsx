@@ -7,9 +7,9 @@ import "./globals.css";
 const font = Space_Mono({ subsets: ["latin"], weight: ["400", "700"] });
 
 export const metadata: Metadata = {
-  title: "STT & TTS Demo",
+  title: "Speech Notes",
   description:
-    "Real-time speech transcription and synthesis powered by Web Speech API",
+    "Speech Notes is a real-time speech transcription and synthesis note-taking app powered by Web Speech API",
 };
 
 export default function RootLayout({

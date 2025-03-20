@@ -2,6 +2,7 @@ import { bricolage } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ModeToggle } from "./mode-toggle";
+import { metadata } from "@/app/layout";
 
 export function Header() {
   return (
@@ -11,7 +12,7 @@ export function Header() {
           <div className="flex">
             <Link href="/" className="flex items-center space-x-2">
               <span className={cn("font-bold", bricolage.className)}>
-                STT & TTS Demo
+                {metadata.title as string}
               </span>
             </Link>
           </div>

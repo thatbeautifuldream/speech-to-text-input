@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { initialMessages } from "@/data/initial-messages";
 
 export type Message = {
   id: string;
@@ -16,19 +17,16 @@ type MessagesStore = {
 
 export const useMessagesStore = create<MessagesStore>()(
   persist(
-    (set) => ({
-      messages: [],
-      addMessage: (text) =>
-        set((state) => ({
-          messages: [
-            ...state.messages,
-            {
-              id: crypto.randomUUID(),
-              text,
-              timestamp: Date.now(),
-            },
-          ],
-        })),
+    (set, get) => ({
+      messages: initialMessages,
+      addMessage: (text) => {
+        const newMessage = {
+          id: crypto.randomUUID(),
+          text,
+          timestamp: Date.now(),
+        };
+        set({ messages: [...get().messages, newMessage] });
+      },
       deleteMessage: (id) =>
         set((state) => ({
           messages: state.messages.filter((msg) => msg.id !== id),
@@ -37,6 +35,7 @@ export const useMessagesStore = create<MessagesStore>()(
     }),
     {
       name: "messages-storage",
+      version: 1,
     }
   )
 );
