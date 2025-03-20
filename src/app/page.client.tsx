@@ -3,11 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useSpeechStore } from "@/store/use-speech-store";
-import { Loader2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Loader2, Mic, MicOff, Volume2, VolumeX, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useMessagesStore } from "@/store/use-messages-store";
+import { MessagesList } from "@/components/messages-list";
 
 type SpeechRecognitionErrorEvent = Event & {
   error: string;
@@ -78,6 +80,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef("");
+  const addMessage = useMessagesStore((state) => state.addMessage);
 
   useEffect(() => {
     // Check if browser supports SpeechRecognition
@@ -205,6 +208,11 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
       return;
     }
 
+    // Stop microphone recording if it's active
+    if (isListening) {
+      recognitionRef.current?.stop();
+    }
+
     const utterance = new SpeechSynthesisUtterance(
       transcript + (interimTranscript ? ` ${interimTranscript}` : "")
     );
@@ -230,8 +238,26 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
     };
   }, []);
 
+  const handleSend = () => {
+    const text =
+      transcript + (interimTranscript ? ` ${interimTranscript}` : "");
+    if (!text.trim()) {
+      toast.error("Please enter some text to send");
+      return;
+    }
+    addMessage(text.trim());
+    resetTranscript();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <div className={cn("w-full max-w-md mx-auto space-y-4", className)}>
+    <div className={cn("w-full max-w-2xl mx-auto space-y-4", className)}>
       <div className="relative">
         <Textarea
           value={
@@ -241,8 +267,9 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
             setTranscript(e.target.value);
             finalTranscriptRef.current = e.target.value;
           }}
+          onKeyDown={handleKeyDown}
           placeholder="Click the microphone button and start speaking..."
-          className="min-h-[150px] pr-24 resize-y"
+          className="min-h-[150px] pr-36 resize-y"
         />
         <AnimatePresence mode="wait">
           <div className="absolute bottom-3 right-3 flex gap-2">
@@ -313,6 +340,17 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
                 )}
               </Button>
             </motion.div>
+            <motion.div initial={{ scale: 1 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={handleSend}
+                size="icon"
+                variant="default"
+                className="relative w-10 h-10 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                aria-label="Send message"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </motion.div>
           </div>
         </AnimatePresence>
       </div>
@@ -334,6 +372,8 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
           Clear
         </Button>
       </div>
+
+      <MessagesList />
     </div>
   );
 }
