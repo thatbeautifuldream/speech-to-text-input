@@ -153,11 +153,15 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
     // Cleanup function
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.onstart = null;
-        recognitionRef.current.onend = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+          recognitionRef.current.onstart = null;
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.onresult = null;
+        } catch (error) {
+          console.error("Error during speech recognition cleanup:", error);
+        }
       }
     };
   }, [
@@ -245,6 +249,12 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
       toast.error("Please enter some text to send");
       return;
     }
+
+    // Stop microphone recording if it's active
+    if (isListening) {
+      recognitionRef.current?.stop();
+    }
+
     addMessage(text.trim());
     resetTranscript();
   };
@@ -361,17 +371,6 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
           Edge, or Safari.
         </p>
       )}
-
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          onClick={resetTranscript}
-          disabled={!transcript}
-          size="sm"
-        >
-          Clear
-        </Button>
-      </div>
 
       <MessagesList />
     </div>
