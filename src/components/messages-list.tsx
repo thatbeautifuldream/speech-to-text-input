@@ -2,12 +2,14 @@ import { useState, Fragment } from "react";
 import { Button } from "./ui/button";
 import { Volume2, VolumeX, Trash2 } from "lucide-react";
 import { useMessagesStore } from "@/store/use-messages-store";
+import { useSpeechStore } from "@/store/use-speech-store";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 export function MessagesList() {
   const messages = useMessagesStore((state) => state.messages);
   const deleteMessage = useMessagesStore((state) => state.deleteMessage);
+  const selectedVoice = useSpeechStore((state) => state.selectedVoice);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
 
   const speakMessage = (id: string, text: string) => {
@@ -20,6 +22,12 @@ export function MessagesList() {
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
+
+    // Use the selected voice if available
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
+    }
 
     utterance.onend = () => {
       setSpeakingId(null);
