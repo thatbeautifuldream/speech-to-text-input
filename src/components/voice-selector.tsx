@@ -29,7 +29,10 @@ const getLanguageName = (locale: string) => {
       ) || locale
     );
   } catch (e) {
-    console.error(e);
+    console.log(
+      "🪵 [voice-selector.tsx:31] ~ token ~ \x1b[0;32me\x1b[0m = ",
+      e
+    );
     return locale;
   }
 };
@@ -39,7 +42,7 @@ const groupVoicesByLanguage = (voices: SpeechSynthesisVoice[]) => {
   const groups = voices.reduce((acc, voice) => {
     const lang = voice.lang.split("-")[0];
     console.log(
-      "🪵 [voice-selector.tsx:40] ~ token ~ \x1b[0;32mlang\x1b[0m = ",
+      "🪵 [voice-selector.tsx:39] ~ token ~ \x1b[0;32mlang\x1b[0m = ",
       lang
     );
     const langName = getLanguageName(voice.lang);
@@ -165,8 +168,11 @@ export function VoiceSelector() {
             {groupedVoices.map(([language, languageVoices]) => (
               <CommandGroup
                 key={language}
-                heading={language}
-                className="font-semibold"
+                heading={
+                  <span className="font-semibold">
+                    {language + " (" + languageVoices.length + ")"}
+                  </span>
+                }
               >
                 {languageVoices.map((voice) => (
                   <CommandItem
