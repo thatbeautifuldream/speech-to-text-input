@@ -10,7 +10,7 @@ export function Header() {
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <span className={cn("font-bold", bricolage.className)}>
-              Speech-to-Text Demo
+              STT & TTS Demo
             </span>
           </Link>
         </div>
