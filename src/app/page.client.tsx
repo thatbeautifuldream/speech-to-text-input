@@ -285,9 +285,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
   };
 
   return (
-    <div
-      className={cn("w-full max-w-2xl mx-auto space-y-4 px-4 py-6", className)}
-    >
+    <div className={cn("w-full space-y-4 px-4 py-6", className)}>
       <div className="relative">
         <Textarea
           value={

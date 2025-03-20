@@ -11,7 +11,7 @@ export default function Home() {
 
       <main className="flex-grow">
         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 py-8">
-          <SpeechToText className="max-w-2xl mx-auto" />
+          <SpeechToText />
         </div>
       </main>
 
