@@ -250,13 +250,24 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
       return;
     }
 
-    // Stop microphone recording if it's active
-    if (isListening) {
-      recognitionRef.current?.stop();
-    }
-
+    // Add the message first
     addMessage(text.trim());
-    resetTranscript();
+
+    // Stop microphone recording if it's active and handle cleanup
+    if (isListening && recognitionRef.current) {
+      // First stop the recognition
+      recognitionRef.current.stop();
+
+      // Use a small timeout to ensure recognition has fully stopped
+      setTimeout(() => {
+        resetTranscript();
+        finalTranscriptRef.current = "";
+      }, 100);
+    } else {
+      // If not listening, just reset immediately
+      resetTranscript();
+      finalTranscriptRef.current = "";
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -267,7 +278,9 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
   };
 
   return (
-    <div className={cn("w-full max-w-2xl mx-auto space-y-4", className)}>
+    <div
+      className={cn("w-full max-w-2xl mx-auto space-y-4 px-4 py-6", className)}
+    >
       <div className="relative">
         <Textarea
           value={

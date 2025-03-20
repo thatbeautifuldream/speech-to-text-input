@@ -14,6 +14,15 @@ export function Footer() {
           >
             Milind Mishra
           </Link>
+          {" • "}
+          <Link
+            href="https://github.com/thatbeautifuldream/stt-tts-poc"
+            className="font-medium underline underline-offset-4 hover:text-foreground"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open Source
+          </Link>
         </p>
       </div>
     </footer>
