@@ -7,8 +7,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Speech-to-Text Demo",
-  description: "Real-time speech transcription powered by Web Speech API",
+  title: "STT & TTS Demo",
+  description:
+    "Real-time speech transcription and synthesis powered by Web Speech API",
 };
 
 export default function RootLayout({
