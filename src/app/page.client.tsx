@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useMessagesStore } from "@/store/use-messages-store";
 import { MessagesList } from "@/components/messages-list";
+import { VoiceSelector } from "@/components/voice-selector";
 
 type SpeechRecognitionErrorEvent = Event & {
   error: string;
@@ -221,6 +222,12 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
       transcript + (interimTranscript ? ` ${interimTranscript}` : "")
     );
 
+    // Set the selected voice if available
+    const selectedVoice = useSpeechStore.getState().selectedVoice;
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+
     utterance.onend = () => {
       setIsSpeaking(false);
     };
@@ -294,6 +301,9 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
           placeholder="Click the microphone button and start speaking..."
           className="min-h-[150px] pr-36 resize-y"
         />
+        <div className="absolute bottom-3 left-3">
+          <VoiceSelector />
+        </div>
         <AnimatePresence mode="wait">
           <div className="absolute bottom-3 right-3 flex gap-2">
             <motion.div initial={{ scale: 1 }} whileTap={{ scale: 0.95 }}>
