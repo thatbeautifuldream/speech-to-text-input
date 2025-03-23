@@ -1,6 +1,6 @@
-import { Message } from "../store/use-messages-store";
+import { TMessage } from "../store/use-messages-store";
 
-export const initialMessages: Message[] = [
+export const initialMessages: TMessage[] = [
   {
     id: "welcome-message",
     text: "And you know what's more interesting? This project is open source.",

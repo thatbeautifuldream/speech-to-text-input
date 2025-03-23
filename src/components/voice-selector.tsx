@@ -1,9 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
+import * as React from "react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -18,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { useSpeechStore } from "@/store/use-speech-store";
 
 // Helper function to get language name from locale
@@ -28,11 +28,7 @@ const getLanguageName = (locale: string) => {
         locale.split("-")[0]
       ) || locale
     );
-  } catch (e) {
-    console.log(
-      "🪵 [voice-selector.tsx:31] ~ token ~ \x1b[0;32me\x1b[0m = ",
-      e
-    );
+  } catch {
     return locale;
   }
 };
@@ -40,11 +36,7 @@ const getLanguageName = (locale: string) => {
 // Group voices by language
 const groupVoicesByLanguage = (voices: SpeechSynthesisVoice[]) => {
   const groups = voices.reduce((acc, voice) => {
-    const lang = voice.lang.split("-")[0];
-    console.log(
-      "🪵 [voice-selector.tsx:39] ~ token ~ \x1b[0;32mlang\x1b[0m = ",
-      lang
-    );
+    // const lang = voice.lang.split("-")[0];
     const langName = getLanguageName(voice.lang);
     if (!acc[langName]) {
       acc[langName] = [];

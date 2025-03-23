@@ -2,14 +2,14 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { initialMessages } from "@/data/initial-messages";
 
-export type Message = {
+export type TMessage = {
   id: string;
   text: string;
   timestamp: number;
 };
 
 type MessagesStore = {
-  messages: Message[];
+  messages: TMessage[];
   addMessage: (text: string) => void;
   deleteMessage: (id: string) => void;
   clearMessages: () => void;
@@ -36,6 +36,16 @@ export const useMessagesStore = create<MessagesStore>()(
     {
       name: "messages-storage",
       version: 1,
+      migrate: (persistedState: unknown, version: number) => {
+        if (version === 0) {
+          // Handle migration from version 0 to 1
+          return {
+            ...(persistedState as MessagesStore),
+            messages: (persistedState as MessagesStore).messages || [],
+          };
+        }
+        return persistedState as MessagesStore;
+      },
     }
   )
 );

@@ -1,50 +1,18 @@
 "use client";
 
+import { MessagesList } from "@/components/messages-list";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useSpeechStore } from "@/store/use-speech-store";
-import { Loader2, Mic, MicOff, Volume2, VolumeX, Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { VoiceSelector } from "@/components/voice-selector";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
 import { cn } from "@/lib/utils";
 import { useMessagesStore } from "@/store/use-messages-store";
-import { MessagesList } from "@/components/messages-list";
-import { VoiceSelector } from "@/components/voice-selector";
-
-type SpeechRecognitionErrorEvent = Event & {
-  error: string;
-};
-
-type SpeechRecognitionResult = {
-  isFinal: boolean;
-  [index: number]: {
-    transcript: string;
-  };
-};
-
-type SpeechRecognitionEvent = Event & {
-  resultIndex: number;
-  results: {
-    [index: number]: SpeechRecognitionResult;
-    length: number;
-  };
-};
-
-type SpeechRecognition = EventTarget & {
-  continuous: boolean;
-  interimResults: boolean;
-  start: () => void;
-  stop: () => void;
-  onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => void) | null;
-  onerror:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void)
-    | null;
-  onresult:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void)
-    | null;
-};
+import { useSpeechStore } from "@/store/use-speech-store";
+import { SpeechRecognition } from "@/types/speech";
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, Mic, MicOff, Send, Volume2, VolumeX } from "lucide-react";
+import { useEffect } from "react";
 
 declare global {
   interface Window {
@@ -53,207 +21,32 @@ declare global {
   }
 }
 
-type TSpeechToTextProps = {
-  className?: string;
-};
-
-export default function SpeechToText({ className }: TSpeechToTextProps) {
-  const [isSpeaking, setIsSpeaking] = useState(false);
+export default function SpeechToText({ className }: { className?: string }) {
   // Use selective state updates to prevent unnecessary re-renders
   const transcript = useSpeechStore((state) => state.transcript);
   const interimTranscript = useSpeechStore((state) => state.interimTranscript);
   const isListening = useSpeechStore((state) => state.isListening);
   const isSupported = useSpeechStore((state) => state.isSupported);
   const isLoading = useSpeechStore((state) => state.isLoading);
-
-  // Actions
   const setTranscript = useSpeechStore((state) => state.setTranscript);
-  const setInterimTranscript = useSpeechStore(
-    (state) => state.setInterimTranscript
-  );
-  const setListening = useSpeechStore((state) => state.setListening);
-  const setSupported = useSpeechStore((state) => state.setSupported);
-  const setLoading = useSpeechStore((state) => state.setLoading);
   const resetTranscript = useSpeechStore((state) => state.resetTranscript);
-  const updateFinalTranscript = useSpeechStore(
-    (state) => state.updateFinalTranscript
-  );
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const finalTranscriptRef = useRef("");
   const addMessage = useMessagesStore((state) => state.addMessage);
 
-  useEffect(() => {
-    // Check if browser supports SpeechRecognition
-    if (
-      !("webkitSpeechRecognition" in window) &&
-      !("SpeechRecognition" in window)
-    ) {
-      setSupported(false);
-      return;
-    }
-
-    // Initialize SpeechRecognition
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.continuous = true;
-    recognitionRef.current.interimResults = true;
-
-    const handleStart = () => {
-      setLoading(false);
-      setListening(true);
-      setInterimTranscript("");
-    };
-
-    const handleEnd = () => {
-      setListening(false);
-      setInterimTranscript("");
-    };
-
-    const handleError = (event: SpeechRecognitionErrorEvent) => {
-      console.error("Speech recognition error", event.error);
-      setListening(false);
-      setLoading(false);
-      setInterimTranscript("");
-      toast.error(`Speech recognition error: ${event.error}`);
-    };
-
-    const handleResult = (event: SpeechRecognitionEvent) => {
-      let currentInterimTranscript = "";
-      let newFinalTranscript = "";
-
-      // Process results
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcriptText = result[0].transcript;
-
-        if (result.isFinal) {
-          newFinalTranscript += transcriptText + " ";
-        } else {
-          currentInterimTranscript += transcriptText;
-        }
-      }
-
-      // Update final transcript if we have new final results
-      if (newFinalTranscript) {
-        finalTranscriptRef.current += newFinalTranscript;
-        updateFinalTranscript(newFinalTranscript);
-      }
-
-      // Update interim transcript
-      setInterimTranscript(currentInterimTranscript);
-    };
-
-    // Attach event listeners
-    recognitionRef.current.onstart = handleStart;
-    recognitionRef.current.onend = handleEnd;
-    recognitionRef.current.onerror = handleError;
-    recognitionRef.current.onresult = handleResult;
-
-    // Cleanup function
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-          recognitionRef.current.onstart = null;
-          recognitionRef.current.onend = null;
-          recognitionRef.current.onerror = null;
-          recognitionRef.current.onresult = null;
-        } catch (error) {
-          console.error("Error during speech recognition cleanup:", error);
-        }
-      }
-    };
-  }, [
-    setSupported,
-    setLoading,
-    setListening,
-    setInterimTranscript,
-    updateFinalTranscript,
-  ]);
-
-  const toggleListening = async () => {
-    if (!isSupported) {
-      toast.error("Speech recognition is not supported in your browser.");
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      try {
-        setLoading(true);
-        // Request microphone permission
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Reset the final transcript reference when starting a new session
-        if (!transcript) {
-          finalTranscriptRef.current = "";
-        }
-        recognitionRef.current?.start();
-      } catch (error) {
-        console.error("Error accessing microphone", error);
-        setLoading(false);
-        toast.error("Microphone access is required for speech recognition.");
-      }
-    }
-  };
-
-  const speakText = () => {
-    if (!transcript && !interimTranscript) {
-      toast.error("Please enter some text to speak");
-      return;
-    }
-
-    // Stop any ongoing speech
-    window.speechSynthesis.cancel();
-
-    if (isSpeaking) {
-      setIsSpeaking(false);
-      return;
-    }
-
-    // Stop microphone recording if it's active
-    if (isListening) {
-      recognitionRef.current?.stop();
-    }
-
-    const utterance = new SpeechSynthesisUtterance(
-      transcript + (interimTranscript ? ` ${interimTranscript}` : "")
-    );
-
-    // Set the selected voice if available
-    const selectedVoice = useSpeechStore.getState().selectedVoice;
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-    };
-
-    utterance.onerror = (event) => {
-      console.error("Speech synthesis error", event);
-      setIsSpeaking(false);
-      toast.error("Error speaking text");
-    };
-
-    setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  // Add cleanup for speech synthesis
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel();
-    };
-  }, []);
+  const {
+    toggleListening,
+    handleMicrophoneStop,
+    finalTranscriptRef,
+    recognitionRef,
+  } = useSpeechRecognition();
+  const { isSpeaking, speakText } = useSpeechSynthesis();
 
   const handleSend = () => {
     const text =
       transcript + (interimTranscript ? ` ${interimTranscript}` : "");
+    console.log("📤 Sending message:", { text, transcript, interimTranscript });
+
     if (!text.trim()) {
-      toast.error("Please enter some text to send");
       return;
     }
 
@@ -262,16 +55,20 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
 
     // Stop microphone recording if it's active and handle cleanup
     if (isListening && recognitionRef.current) {
+      console.log("🎤 Stopping recognition on send");
       // First stop the recognition
       recognitionRef.current.stop();
+      handleMicrophoneStop();
 
       // Use a small timeout to ensure recognition has fully stopped
       setTimeout(() => {
+        console.log("🧹 Cleaning up after send");
         resetTranscript();
         finalTranscriptRef.current = "";
       }, 100);
     } else {
       // If not listening, just reset immediately
+      console.log("🧹 Immediate cleanup after send");
       resetTranscript();
       finalTranscriptRef.current = "";
     }
@@ -279,10 +76,30 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
+      console.log("⌨️ Enter pressed - sending message");
       e.preventDefault();
       handleSend();
     }
   };
+
+  const handleSpeakClick = () => {
+    console.log("🔊 Speaking text:", {
+      transcript,
+      interimTranscript,
+      fullText: transcript + (interimTranscript ? ` ${interimTranscript}` : ""),
+    });
+    speakText(transcript + (interimTranscript ? ` ${interimTranscript}` : ""));
+  };
+
+  useEffect(() => {
+    console.log("🔄 State Update:", {
+      transcript,
+      interimTranscript,
+      isListening,
+      isSupported,
+      isLoading,
+    });
+  }, [transcript, interimTranscript, isListening, isSupported, isLoading]);
 
   return (
     <div className={cn("w-full space-y-4 px-4 py-6", className)}>
@@ -306,7 +123,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
           <div className="absolute bottom-3 right-3 flex gap-2">
             <motion.div initial={{ scale: 1 }} whileTap={{ scale: 0.95 }}>
               <Button
-                onClick={speakText}
+                onClick={handleSpeakClick}
                 size="icon"
                 variant={isSpeaking ? "destructive" : "secondary"}
                 className="relative w-10 h-10 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow"
@@ -321,7 +138,7 @@ export default function SpeechToText({ className }: TSpeechToTextProps) {
             </motion.div>
             <motion.div initial={{ scale: 1 }} whileTap={{ scale: 0.95 }}>
               <Button
-                onClick={toggleListening}
+                onClick={() => toggleListening(transcript)}
                 disabled={!isSupported || isLoading}
                 size="icon"
                 variant={isListening ? "destructive" : "default"}
