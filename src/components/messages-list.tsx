@@ -1,12 +1,9 @@
-import { useState, Fragment, useEffect } from "react";
-import { Button } from "./ui/button";
-import { Volume2, VolumeX, Trash2 } from "lucide-react";
 import { useMessagesStore } from "@/store/use-messages-store";
 import { useSpeechStore } from "@/store/use-speech-store";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { useAppSound } from "@/hooks/use-app-sound";
-import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
+import { Trash2, Volume2, VolumeX } from "lucide-react";
+import { Fragment, useState } from "react";
+import { Button } from "./ui/button";
 
 export function MessagesList() {
   const messages = useMessagesStore((state) => state.messages);
