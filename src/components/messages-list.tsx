@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Volume2, VolumeX, Trash2 } from "lucide-react";
 import { useMessagesStore } from "@/store/use-messages-store";
@@ -13,26 +13,35 @@ export function MessagesList() {
   const deleteMessage = useMessagesStore((state) => state.deleteMessage);
   const selectedVoice = useSpeechStore((state) => state.selectedVoice);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
-  const { playError } = useAppSound();
-  const { speakText } = useSpeechSynthesis();
 
   const speakMessage = (id: string, text: string) => {
+    // If clicking the same message that's speaking, stop it
     if (speakingId === id) {
       window.speechSynthesis.cancel();
       setSpeakingId(null);
       return;
     }
 
+    // If another message is speaking, stop it first
+    if (speakingId !== null) {
+      window.speechSynthesis.cancel();
+    }
+
     setSpeakingId(id);
-    speakText(text);
+
+    // Create and configure utterance
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
 
     // Add listener for when speech ends
-    const handleEnd = () => {
+    utterance.onend = () => {
       setSpeakingId(null);
-      window.speechSynthesis.removeEventListener("end", handleEnd);
     };
 
-    window.speechSynthesis.addEventListener("end", handleEnd);
+    // Start speaking
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
