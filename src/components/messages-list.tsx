@@ -5,42 +5,34 @@ import { useMessagesStore } from "@/store/use-messages-store";
 import { useSpeechStore } from "@/store/use-speech-store";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useAppSound } from "@/hooks/use-app-sound";
+import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
 
 export function MessagesList() {
   const messages = useMessagesStore((state) => state.messages);
   const deleteMessage = useMessagesStore((state) => state.deleteMessage);
   const selectedVoice = useSpeechStore((state) => state.selectedVoice);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const { playError } = useAppSound();
+  const { speakText } = useSpeechSynthesis();
 
   const speakMessage = (id: string, text: string) => {
-    // Stop any ongoing speech
-    window.speechSynthesis.cancel();
-
     if (speakingId === id) {
+      window.speechSynthesis.cancel();
       setSpeakingId(null);
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    // Use the selected voice if available
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-      utterance.lang = selectedVoice.lang;
-    }
-
-    utterance.onend = () => {
-      setSpeakingId(null);
-    };
-
-    utterance.onerror = (event) => {
-      console.error("Speech synthesis error", event);
-      setSpeakingId(null);
-      toast.error("Error speaking text");
-    };
-
     setSpeakingId(id);
-    window.speechSynthesis.speak(utterance);
+    speakText(text);
+
+    // Add listener for when speech ends
+    const handleEnd = () => {
+      setSpeakingId(null);
+      window.speechSynthesis.removeEventListener("end", handleEnd);
+    };
+
+    window.speechSynthesis.addEventListener("end", handleEnd);
   };
 
   return (

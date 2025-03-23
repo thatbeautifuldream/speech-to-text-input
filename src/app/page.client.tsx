@@ -13,6 +13,7 @@ import { SpeechRecognition } from "@/types/speech";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Mic, MicOff, Send, Volume2, VolumeX } from "lucide-react";
 import { useEffect } from "react";
+import { useAppSound } from "@/hooks/use-app-sound";
 
 declare global {
   interface Window {
@@ -40,6 +41,7 @@ export default function SpeechToText({ className }: { className?: string }) {
     recognitionRef,
   } = useSpeechRecognition();
   const { isSpeaking, speakText } = useSpeechSynthesis();
+  const { playSend } = useAppSound();
 
   const handleSend = () => {
     const text =
@@ -52,6 +54,7 @@ export default function SpeechToText({ className }: { className?: string }) {
 
     // Add the message first
     addMessage(text.trim());
+    playSend();
 
     // Stop microphone recording if it's active and handle cleanup
     if (isListening && recognitionRef.current) {

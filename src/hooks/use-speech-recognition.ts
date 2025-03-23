@@ -6,12 +6,12 @@ import {
   SpeechRecognitionErrorEvent,
   SpeechRecognitionEvent,
 } from "@/types/speech";
+import { useAppSound } from "./use-app-sound";
 
 export function useSpeechRecognition() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef("");
-  const micStartSoundRef = useRef<HTMLAudioElement | null>(null);
-  const micStopSoundRef = useRef<HTMLAudioElement | null>(null);
+  const { playMicDown, playMicStart } = useAppSound();
 
   const {
     setInterimTranscript,
@@ -28,25 +28,8 @@ export function useSpeechRecognition() {
     setListening(false);
     setInterimTranscript("");
     setLoading(false);
-    // Play mic stop sound
-    micStopSoundRef.current?.play().catch(console.error);
+    playMicDown();
   };
-
-  useEffect(() => {
-    // Initialize audio elements
-    micStartSoundRef.current = new Audio("/sounds/mic-start.mp3");
-    micStopSoundRef.current = new Audio("/sounds/mic-down.mp3");
-
-    return () => {
-      // Cleanup audio elements
-      if (micStartSoundRef.current) {
-        micStartSoundRef.current = null;
-      }
-      if (micStopSoundRef.current) {
-        micStopSoundRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     // Check if browser supports SpeechRecognition
@@ -70,7 +53,7 @@ export function useSpeechRecognition() {
       setListening(true);
       setInterimTranscript("");
       // Play mic start sound
-      micStartSoundRef.current?.play().catch(console.error);
+      playMicStart();
     };
 
     const handleEnd = () => {
@@ -135,6 +118,8 @@ export function useSpeechRecognition() {
     setListening,
     setInterimTranscript,
     updateFinalTranscript,
+    playMicDown,
+    playMicStart,
   ]);
 
   const toggleListening = async (transcript: string) => {
